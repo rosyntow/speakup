@@ -70,24 +70,41 @@ export function TakeResult({
   tokens,
   stats,
   feedback,
+  feedbackError,
   audioUrl,
 }: {
   takeNumber: number;
   tokens: Token[];
   stats: Stats;
-  feedback: Feedback;
+  feedback: Feedback | null; // null while Claude is still writing it
+  feedbackError?: string | null;
   audioUrl: string | null;
 }) {
   return (
     <div className="flex flex-col gap-5">
-      <section className="flex items-start gap-4">
-        <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-3xl bg-accent text-accent-ink">
-          <span className="text-3xl font-bold tabular-nums leading-none">{feedback.score}</span>
-          <span className="text-xs opacity-80">/ 10</span>
-        </div>
+      <section className="flex items-start gap-4" aria-live="polite">
+        {feedback ? (
+          <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-3xl bg-accent text-accent-ink">
+            <span className="text-3xl font-bold tabular-nums leading-none">{feedback.score}</span>
+            <span className="text-xs opacity-80">/ 10</span>
+          </div>
+        ) : (
+          <div
+            className={`h-20 w-20 shrink-0 rounded-3xl bg-accent/15 ${feedbackError ? "" : "animate-pulse"}`}
+            aria-hidden="true"
+          />
+        )}
         <div>
           <div className="text-xs font-medium uppercase tracking-wide text-muted">Take {takeNumber}</div>
-          <p className="mt-1 text-lg font-medium leading-snug">{feedback.verdict}</p>
+          {feedback ? (
+            <p className="mt-1 text-lg font-medium leading-snug">{feedback.verdict}</p>
+          ) : feedbackError ? (
+            <p className="mt-1 text-[15px] leading-snug text-bad">
+              {feedbackError} Your stats below are still accurate.
+            </p>
+          ) : (
+            <p className="mt-1 text-lg font-medium leading-snug text-muted">Your coach is reviewing this take…</p>
+          )}
         </div>
       </section>
 
@@ -129,32 +146,50 @@ export function TakeResult({
       <section className="rounded-2xl bg-surface p-4">
         <Transcript tokens={tokens} />
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-          <span><b className="font-semibold text-fg">Bold</b> = first {HOOK_WINDOW}s</span>
-          <span><span className="text-bad line-through">struck</span> = filler</span>
-          <span><span className="underline decoration-warn decoration-2">underlined</span> = crutch word</span>
+          <span>
+            <b className="font-semibold text-fg">Bold</b> = first {HOOK_WINDOW}s
+          </span>
+          <span>
+            <span className="text-bad line-through">struck</span> = filler
+          </span>
+          <span>
+            <span className="underline decoration-warn decoration-2">underlined</span> = crutch word
+          </span>
         </div>
       </section>
 
-      <section className="flex flex-col gap-2.5">
-        <ScoreBar label="Tension" score={feedback.scores.tension} />
-        <ScoreBar label="Speed to point" score={feedback.scores.speedToPoint} />
-        <ScoreBar label="Wording" score={feedback.scores.wording} />
-        <ScoreBar label="Delivery" score={feedback.scores.delivery} />
-      </section>
+      {!feedback ? (
+        !feedbackError && (
+          <section className="flex flex-col gap-3" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-4 animate-pulse rounded-full bg-surface" style={{ width: `${90 - i * 15}%` }} />
+            ))}
+          </section>
+        )
+      ) : (
+        <>
+          <section className="flex flex-col gap-2.5">
+            <ScoreBar label="Tension" score={feedback.scores.tension} />
+            <ScoreBar label="Speed to point" score={feedback.scores.speedToPoint} />
+            <ScoreBar label="Wording" score={feedback.scores.wording} />
+            <ScoreBar label="Delivery" score={feedback.scores.delivery} />
+          </section>
 
-      <section>
-        <h3 className="text-sm font-semibold">Fix next</h3>
-        <ol className="mt-2 flex list-decimal flex-col gap-2 pl-5 text-[15px] leading-relaxed">
-          {feedback.fixes.map((f, i) => (
-            <li key={i}>{f}</li>
-          ))}
-        </ol>
-      </section>
+          <section>
+            <h3 className="text-sm font-semibold">Fix next</h3>
+            <ol className="mt-2 flex list-decimal flex-col gap-2 pl-5 text-[15px] leading-relaxed">
+              {feedback.fixes.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ol>
+          </section>
 
-      <section className="rounded-2xl border-2 border-dashed border-accent/50 p-4">
-        <div className="text-xs font-medium uppercase tracking-wide text-accent">Try saying it like this</div>
-        <p className="mt-1 text-lg font-semibold leading-snug">“{feedback.rewrite}”</p>
-      </section>
+          <section className="rounded-2xl border-2 border-dashed border-accent/50 p-4">
+            <div className="text-xs font-medium uppercase tracking-wide text-accent">Try saying it like this</div>
+            <p className="mt-1 text-lg font-semibold leading-snug">“{feedback.rewrite}”</p>
+          </section>
+        </>
+      )}
     </div>
   );
 }

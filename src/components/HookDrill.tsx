@@ -12,11 +12,13 @@ import { TakeResult } from "./TakeResult";
 import { useRecorder } from "./useRecorder";
 
 type Result = {
+  id: string;
   takeNumber: number;
   transcript: string;
   tokens: Token[];
   stats: Stats;
-  feedback: Feedback;
+  feedback: Feedback | null; // null while Claude is still writing it
+  feedbackError: string | null;
   audioUrl: string;
 };
 
@@ -65,24 +67,44 @@ export function HookDrill() {
         if (words.length === 0) throw new Error("Didn't catch any speech. Check your mic and try again.");
 
         const { tokens, stats } = analyze(words);
-        const prev = sessionTakes.at(-1);
-        const feedback = await postJson<Feedback>(`${BASE}/api/feedback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic,
-            transcript,
-            stats,
-            previous: prev ? { transcript: prev.transcript, score: prev.feedback.score } : null,
-          }),
-        });
+        const prev = sessionTakes.findLast((t) => t.feedback);
 
-        const audioUrl = await audioUrlReady;
-        const next: Result = { takeNumber: sessionTakes.length + 1, transcript, tokens, stats, feedback, audioUrl };
-        setResult(next);
-        setSessionTakes((t) => [...t, next]);
-        saveTake({ id: crypto.randomUUID(), createdAt: Date.now(), topic, transcript, stats, feedback });
+        // Show the transcript and stats straight away; Claude's feedback fills in when it arrives.
+        const id = crypto.randomUUID();
+        const take: Result = {
+          id,
+          takeNumber: sessionTakes.length + 1,
+          transcript,
+          tokens,
+          stats,
+          feedback: null,
+          feedbackError: null,
+          audioUrl: await audioUrlReady,
+        };
+        setResult(take);
+        setSessionTakes((t) => [...t, take]);
         setPhase("result");
+
+        const update = (patch: Partial<Result>) => {
+          setResult((r) => (r?.id === id ? { ...r, ...patch } : r));
+          setSessionTakes((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+        };
+        try {
+          const feedback = await postJson<Feedback>(`${BASE}/api/feedback`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic,
+              transcript,
+              stats,
+              previous: prev?.feedback ? { transcript: prev.transcript, score: prev.feedback.score } : null,
+            }),
+          });
+          update({ feedback });
+          saveTake({ id, createdAt: Date.now(), topic, transcript, stats, feedback });
+        } catch (e) {
+          update({ feedbackError: e instanceof Error ? e.message : "Couldn't get feedback for this take." });
+        }
       } catch (e) {
         void audioUrlReady.then((url) => URL.revokeObjectURL(url));
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -103,7 +125,8 @@ export function HookDrill() {
     setEditingTopic(false);
   };
 
-  const last = sessionTakes.at(-1);
+  const last = sessionTakes.findLast((t) => t.feedback);
+  const waitingForFeedback = !!result && !result.feedback && !result.feedbackError;
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pb-16 pt-6">
@@ -126,13 +149,15 @@ export function HookDrill() {
           <div className="sticky bottom-4 flex gap-3">
             <button
               onClick={() => setPhase("ready")}
-              className="flex-1 rounded-full bg-accent px-6 py-4 text-base font-semibold text-accent-ink shadow-lg active:scale-[0.98]"
+              disabled={waitingForFeedback}
+              className="flex-1 rounded-full bg-accent px-6 py-4 text-base font-semibold text-accent-ink shadow-lg active:scale-[0.98] disabled:opacity-50"
             >
               Try again
             </button>
             <button
               onClick={() => changeTopic(randomTopic(topic))}
-              className="rounded-full bg-surface-strong px-6 py-4 text-base font-semibold active:scale-[0.98]"
+              disabled={waitingForFeedback}
+              className="rounded-full bg-surface-strong px-6 py-4 text-base font-semibold active:scale-[0.98] disabled:opacity-50"
             >
               New topic
             </button>
@@ -173,9 +198,9 @@ export function HookDrill() {
             {last && (
               <div className="mt-4 border-t border-line pt-3 text-sm">
                 <span className="text-muted">
-                  Take {sessionTakes.length + 1} · last score {last.feedback.score}/10
+                  Take {sessionTakes.length + 1} · last score {last.feedback?.score}/10
                 </span>
-                <p className="mt-1 font-medium">Focus: {last.feedback.focusNextTake}</p>
+                <p className="mt-1 font-medium">Focus: {last.feedback?.focusNextTake}</p>
               </div>
             )}
           </section>
