@@ -9,6 +9,16 @@ const LIMITS = {
   global: Number(process.env.DAILY_TAKES_TOTAL ?? 300),
 };
 
+// Comma-separated emails that skip every daily cap (e.g. the owner). Their takes don't count
+// toward the IP or overall caps either, so they never use up the public budget.
+const UNLIMITED = new Set(
+  (process.env.UNLIMITED_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+const isUnlimited = (email: string) => UNLIMITED.has(email.toLowerCase());
+
 const memory = new Map<string, number>();
 
 let useMemory = false;
@@ -79,15 +89,19 @@ const keys = (email: string, ip: string, kind: "takes" | "feedback") => {
   };
 };
 
-export type Usage = { used: number; limit: number };
+export type Usage = { used: number; limit: number; unlimited: boolean };
 
 export async function usage(email: string): Promise<Usage> {
-  return { used: await read(keys(email, "", "takes").person), limit: LIMITS.person };
+  return { used: await read(keys(email, "", "takes").person), limit: LIMITS.person, unlimited: isUnlimited(email) };
 }
 
 // Call before transcribing. Returns an error message if a cap is hit, otherwise records the take.
 export async function claimTake(email: string, ip: string): Promise<string | null> {
   const k = keys(email, ip, "takes");
+  if (isUnlimited(email)) {
+    await bump(k.person); // still counted, so feedback can be matched to takes
+    return null;
+  }
   const [person, byIp, global] = await Promise.all([read(k.person), read(k.ip), read(k.global)]);
   if (global >= LIMITS.global) return "SpeakUp has hit its daily limit. Come back tomorrow!";
   if (person >= LIMITS.person || byIp >= LIMITS.ip)

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BASE, SITE } from "@/lib/base";
 
-export type Account = { signedIn: true; firstName: string; used: number; limit: number };
+export type Account = { signedIn: true; firstName: string; used: number; limit: number; unlimited?: boolean };
 
 export function SignupGate({ onSignedIn }: { onSignedIn: (a: Account) => void }) {
   const [firstName, setFirstName] = useState("");

@@ -265,7 +265,9 @@ export function HookDrill() {
                   Aim for the first 3 seconds; keep going if you like.
                 </p>
                 <p className="text-sm font-medium text-muted">
-                  {Math.max(0, account.limit - account.used)} of {account.limit} takes left today
+                  {account.unlimited
+                    ? "Unlimited takes"
+                    : `${Math.max(0, account.limit - account.used)} of ${account.limit} takes left today`}
                 </p>
               </>
             )}

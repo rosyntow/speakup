@@ -31,5 +31,5 @@ export async function POST(request: Request) {
     console.error(`[signup] usage lookup failed after ${Date.now() - started}ms:`, e);
     return null;
   });
-  return Response.json({ signedIn: true, firstName, ...(used ?? { used: 0, limit: 10 }) });
+  return Response.json({ signedIn: true, firstName, ...(used ?? { used: 0, limit: 10, unlimited: false }) });
 }

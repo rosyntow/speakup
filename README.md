@@ -20,7 +20,7 @@ In Netlify → this site → Site configuration → Environment variables, set `
 
 ## Sign-up and limits
 
-Visitors sign up with name and email (added to Kit, tagged `SpeakUp`) and get a signed cookie. Each person gets 10 takes a day, each IP 20, and the whole app 300, all adjustable with environment variables. Counts are kept in Netlify Blobs. Feedback is limited to one per recorded take.
+Visitors sign up with name and email (added to Kit, tagged `SpeakUp`) and get a signed cookie. Each person gets 10 takes a day, each IP 20, and the whole app 300, all adjustable with environment variables. Emails in `UNLIMITED_EMAILS` skip all caps. Counts are kept in Netlify Blobs. Feedback is limited to one per recorded take.
 
 ## How it works
 
