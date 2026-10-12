@@ -1,26 +1,49 @@
 @import "tailwindcss";
 
+/* Matches zinanyarko.com (site/assets/css/styles.css). The site is light-only, so this is too. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f4f0e8;
+  --card: #fffdf9;
+  --surface: #ebe5da;
+  --surface-strong: #ded6c8;
+  --line: rgba(22, 19, 15, 0.12);
+  --line-strong: rgba(22, 19, 15, 0.24);
+  --ink: #16130f;
+  --ink-soft: #4b443b;
+  --muted: #857a6d;
+  --accent: #e8561c;
+  --accent-ink: #ffffff;
+  --good: #1f7a45;
+  --warn: #b45309;
+  --bad: #c2321a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-fg: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-fraunces), Georgia, serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
 }

@@ -1,0 +1,5 @@
+# SpeakUp runs as its own Netlify site. zinanyarko.com proxies /speakup/* here
+# (see the ZinaWebsite netlify.toml), so visitors stay on zinanyarko.com.
+[build]
+  command = "npm run build"
+  publish = ".next"

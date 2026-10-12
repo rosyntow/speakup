@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SpeakUp
 
-## Getting Started
+An AI delivery coach for creators. Practise the first 3 seconds of a video, get your pace, filler words, pauses and dead air measured, then get specific fixes from Claude and go again.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `cp .env.example .env.local`, then add your keys:
+   - `ANTHROPIC_API_KEY`: https://console.anthropic.com/settings/keys
+   - `DEEPGRAM_API_KEY`: https://console.deepgram.com
+2. `npm install`
+3. `npm run dev`, then open http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app lives under `/speakup` (see `basePath` in `next.config.ts`), so locally it's http://localhost:3000/speakup.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+SpeakUp is its own Netlify site (`zina-speakup`, on the zinanyarko team). The main website (ZinaWebsite project) proxies `zinanyarko.com/speakup/*` to it, so visitors stay on zinanyarko.com.
 
-## Learn More
+In Netlify → this site → Site configuration → Environment variables, set `ANTHROPIC_API_KEY`, `DEEPGRAM_API_KEY`, `SESSION_SECRET` and `KIT_API_KEY` (see `.env.example`).
 
-To learn more about Next.js, take a look at the following resources:
+## Sign-up and limits
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Visitors sign up with name and email (added to Kit, tagged `SpeakUp`) and get a signed cookie. Each person gets 10 takes a day, each IP 20, and the whole app 300, all adjustable with environment variables. Counts are kept in Netlify Blobs. Feedback is limited to one per recorded take.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## How it works
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/components/useRecorder.ts`: records a take from the mic (3-2-1 countdown, 30s max).
+- `src/app/api/transcribe`: sends the audio to Deepgram and returns word-level timestamps. The audio is not stored.
+- `src/lib/analysis.ts`: works out pace, fillers, crutch words, pauses, dead air and what's said in the first 3 seconds.
+- `src/app/api/feedback`: Claude scores the hook and returns fixes, a rewrite and one focus for the next take.
+- `src/lib/history.ts`: past takes, saved in this browser for now.
