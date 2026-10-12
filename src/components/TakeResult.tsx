@@ -1,19 +1,14 @@
-import { HOOK_WINDOW, PAUSE_THRESHOLD, WPM_TARGET, type Stats, type Token } from "@/lib/analysis";
-import type { Feedback } from "@/lib/feedback";
+import { HOOK_WINDOW, PAUSE_THRESHOLD, type Stats, type Token } from "@/lib/analysis";
+import { CONTENT_TYPES, HOOK_TYPES, scoreLabel, type Feedback, type JobKey, type Rating } from "@/lib/feedback";
 
-type Tone = "good" | "warn" | "bad";
+type Tone = "good" | "warn" | "bad" | "neutral";
 
 const toneClass: Record<Tone, string> = {
   good: "text-good",
   warn: "text-warn",
   bad: "text-bad",
+  neutral: "text-ink",
 };
-
-function paceTone(wpm: number): Tone {
-  if (wpm >= WPM_TARGET.min && wpm <= WPM_TARGET.max) return "good";
-  if (wpm >= WPM_TARGET.min - 25 && wpm <= WPM_TARGET.max + 25) return "warn";
-  return "bad";
-}
 
 function StatTile({ label, value, hint, tone }: { label: string; value: string; hint: string; tone: Tone }) {
   return (
@@ -25,16 +20,27 @@ function StatTile({ label, value, hint, tone }: { label: string; value: string; 
   );
 }
 
-function ScoreBar({ label, score }: { label: string; score: number }) {
-  const pct = Math.max(0, Math.min(10, score)) * 10;
+const ratingStyle: Record<Rating, { icon: string; className: string; label: string }> = {
+  strong: { icon: "✓", className: "bg-good/15 text-good", label: "Strong" },
+  partial: { icon: "~", className: "bg-warn/15 text-warn", label: "Partly" },
+  missing: { icon: "✗", className: "bg-bad/15 text-bad", label: "Missing" },
+};
+
+function JobRow({ label, rating, evidence }: { label: string; rating: Rating; evidence: string }) {
+  const style = ratingStyle[rating];
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-28 shrink-0 text-sm text-muted">{label}</div>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-strong">
-        <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
+    <li className="flex gap-3">
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${style.className}`}
+        aria-label={style.label}
+      >
+        {style.icon}
+      </span>
+      <div>
+        <div className="text-[15px] font-semibold">{label}</div>
+        <p className="text-sm leading-relaxed text-ink-soft">{evidence}</p>
       </div>
-      <div className="w-6 text-right text-sm font-semibold tabular-nums">{score}</div>
-    </div>
+    </li>
   );
 }
 
@@ -53,6 +59,7 @@ function Transcript({ tokens }: { tokens: Token[] }) {
               t.kind === "filler" && "rounded bg-bad/15 px-1 text-bad line-through",
               t.kind === "crutch" && "underline decoration-warn decoration-2 underline-offset-4",
               t.inHookWindow && t.kind === "word" && "font-semibold",
+              t.unsure && "underline decoration-muted decoration-dotted decoration-2 underline-offset-4",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -129,6 +136,7 @@ export function TakeResult({
   targetAtTake = null,
   currentTarget = null,
   onUseLine = () => {},
+  previousWpm = null,
 }: {
   takeNumber: number;
   tokens: Token[];
@@ -139,23 +147,28 @@ export function TakeResult({
   targetAtTake?: string | null; // the target line the creator was practising on this take
   currentTarget?: string | null;
   onUseLine?: (line: string) => void;
+  previousWpm?: number | null; // pace of the previous take on this topic, for comparison
 }) {
   return (
     <div className="flex flex-col gap-5">
       <section className="flex items-start gap-4" aria-live="polite">
         {feedback ? (
-          <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-3xl bg-accent text-accent-ink">
+          <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-3xl bg-accent text-accent-ink">
             <span className="text-3xl font-bold tabular-nums leading-none">{feedback.score}</span>
-            <span className="text-xs opacity-80">/ 10</span>
+            <span className="text-xs opacity-80">of 4 jobs</span>
+            <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide">{scoreLabel(feedback.score)}</span>
           </div>
         ) : (
           <div
-            className={`h-20 w-20 shrink-0 rounded-3xl bg-accent/15 ${feedbackError ? "" : "animate-pulse"}`}
+            className={`h-24 w-24 shrink-0 rounded-3xl bg-accent/15 ${feedbackError ? "" : "animate-pulse"}`}
             aria-hidden="true"
           />
         )}
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-muted">Take {takeNumber}</div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">
+            Take {takeNumber}
+            {feedback && ` · ${CONTENT_TYPES[feedback.contentType]?.label ?? ""} · ${HOOK_TYPES[feedback.hookType] ?? "Hook"}`}
+          </div>
           {feedback ? (
             <p className="mt-1 text-lg font-medium leading-snug">{feedback.verdict}</p>
           ) : feedbackError ? (
@@ -180,8 +193,8 @@ export function TakeResult({
         <StatTile
           label="Pace"
           value={`${stats.wpm}`}
-          hint={`wpm · aim ${WPM_TARGET.min}–${WPM_TARGET.max}`}
-          tone={paceTone(stats.wpm)}
+          hint={previousWpm ? `wpm · last take ${previousWpm}` : "words per minute"}
+          tone="neutral"
         />
         <StatTile
           label="Fillers"
@@ -215,6 +228,11 @@ export function TakeResult({
           <span>
             <span className="underline decoration-warn decoration-2">underlined</span> = crutch word
           </span>
+          {stats.unsureWords.length > 0 && (
+            <span>
+              <span className="underline decoration-muted decoration-dotted decoration-2">dotted</span> = may be misheard
+            </span>
+          )}
         </div>
       </section>
 
@@ -228,20 +246,28 @@ export function TakeResult({
         )
       ) : (
         <>
-          <section className="flex flex-col gap-2.5">
-            <ScoreBar label="Tension" score={feedback.scores.tension} />
-            <ScoreBar label="Speed to point" score={feedback.scores.speedToPoint} />
-            <ScoreBar label="Wording" score={feedback.scores.wording} />
-            <ScoreBar label="Delivery" score={feedback.scores.delivery} />
+          <section>
+            <h3 className="text-sm font-semibold">What your hook does</h3>
+            <ul className="mt-3 flex flex-col gap-3">
+              {(Object.keys(feedback.jobs) as JobKey[]).map((job) => (
+                <JobRow
+                  key={job}
+                  label={(CONTENT_TYPES[feedback.contentType] ?? CONTENT_TYPES.teaching).jobs[job].label}
+                  {...feedback.jobs[job]}
+                />
+              ))}
+            </ul>
+            {!feedback.promiseLandsEarly && (
+              <p className="mt-3 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">
+                {(CONTENT_TYPES[feedback.contentType] ?? CONTENT_TYPES.teaching).jobs.promise.label} lands late.
+                Viewers decide in the first second or two, so aim to make it clear within about 10 words.
+              </p>
+            )}
           </section>
 
-          <section>
+          <section className="rounded-2xl bg-card p-4">
             <h3 className="text-sm font-semibold">Fix next</h3>
-            <ol className="mt-2 flex list-decimal flex-col gap-2 pl-5 text-[15px] leading-relaxed">
-              {feedback.fixes.map((f, i) => (
-                <li key={i}>{f}</li>
-              ))}
-            </ol>
+            <p className="mt-1 text-[15px] leading-relaxed">{feedback.fix}</p>
           </section>
 
           <TargetLine
@@ -250,6 +276,11 @@ export function TakeResult({
             feedback={feedback}
             onUseLine={onUseLine}
           />
+
+          <p className="text-xs leading-relaxed text-muted">
+            SpeakUp rates the spoken words of your opening only. Visuals, on-screen text, captions and how much demand
+            the topic has aren&apos;t included, and they often matter just as much.
+          </p>
         </>
       )}
     </div>

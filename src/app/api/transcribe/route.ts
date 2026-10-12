@@ -12,6 +12,7 @@ type DeepgramWord = {
   punctuated_word?: string;
   start: number;
   end: number;
+  confidence?: number;
 };
 
 export async function POST(request: Request) {
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
     text: w.punctuated_word ?? w.word,
     start: w.start,
     end: w.end,
+    confidence: w.confidence,
   }));
 
   return Response.json({ transcript: alt?.transcript ?? "", words });

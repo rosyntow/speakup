@@ -11,7 +11,8 @@ export type Take = {
 };
 
 // Personal phase: history lives in this browser only. Swap for a database at launch.
-const KEY = "speakup.takes.v1";
+// v2: scores became "jobs done out of 4"; v1 takes (out of 10) are left behind rather than mixed in.
+const KEY = "speakup.takes.v2";
 const LIMIT = 100;
 
 const EMPTY: Take[] = [];

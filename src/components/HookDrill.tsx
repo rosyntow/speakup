@@ -152,7 +152,12 @@ export function HookDrill() {
         <SignupGate onSignedIn={setAccount} />
       ) : phase === "result" && result ? (
         <>
-          <TakeResult {...result} currentTarget={target} onUseLine={setTarget} />
+          <TakeResult
+            {...result}
+            currentTarget={target}
+            onUseLine={setTarget}
+            previousWpm={sessionTakes[sessionTakes.findIndex((t) => t.id === result.id) - 1]?.stats.wpm ?? null}
+          />
           <div className="sticky bottom-4 flex gap-3">
             <button
               onClick={() => setPhase("ready")}
@@ -211,7 +216,7 @@ export function HookDrill() {
             {last && (
               <div className="mt-4 border-t border-line pt-3 text-sm">
                 <span className="text-muted">
-                  Take {sessionTakes.length + 1} · last score {last.feedback?.score}/10
+                  Take {sessionTakes.length + 1} · last take did {last.feedback?.score} of 4 jobs
                 </span>
                 <p className="mt-1 font-medium">Focus: {last.feedback?.focusNextTake}</p>
               </div>
@@ -296,7 +301,7 @@ export function HookDrill() {
                 {history.slice(0, 6).map((t) => (
                   <li key={t.id} className="flex items-center gap-3 py-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface font-semibold tabular-nums">
-                      {t.feedback.score}
+                      {t.feedback.score}/4
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">“{t.stats.hookWindowText || t.transcript}”</p>
