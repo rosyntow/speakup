@@ -11,7 +11,14 @@ export const FeedbackSchema = z.object({
     delivery: z.number().describe("1-10: pace, fillers, pauses, judged from the stats"),
   }),
   fixes: z.array(z.string()).describe("2-3 specific, actionable fixes, most important first"),
-  rewrite: z.string().describe("A stronger version of the hook in the creator's own voice, sayable in under 3 seconds"),
+  rewrite: z
+    .string()
+    .describe(
+      "The line to practise: the target line exactly as given, or, only if it has a real problem, a minimal edit of it. With no target line, a stronger version of the hook in the creator's own voice, sayable in under 3 seconds.",
+    ),
+  rewriteNote: z
+    .string()
+    .describe("Empty if the rewrite is the target line unchanged. Otherwise one short sentence on why it changed."),
   focusNextTake: z.string().describe("The single thing to focus on in the very next take"),
 });
 

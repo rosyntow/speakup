@@ -17,13 +17,16 @@ What makes a strong hook:
 - Concrete words beat vague ones ("5 hours" beats "a lot of time").
 - Short-form pace target is ${WPM_TARGET.min}-${WPM_TARGET.max} words per minute. Dead air before the first word and filler words cost viewers.
 
-Be specific to this take: quote their actual words when pointing at a problem. Fixes must be things they can do on the very next take. The rewrite must keep their idea and voice, not replace it with a generic hook. Score honestly; a 9 or 10 should be rare.`;
+Be specific to this take: quote their actual words when pointing at a problem. Fixes must be things they can do on the very next take. The rewrite must keep their idea and voice, not replace it with a generic hook. Score honestly; a 9 or 10 should be rare.
+
+Target line: once the creator has a target line, they are drilling those exact words, so a new script every take works against them. Coach their delivery of that line, and point out where this take drifted from it. Return the target line unchanged as the rewrite, word for word. Change it only if it has a real problem (it can't be said in ${HOOK_WINDOW} seconds, it's unclear, or this take found a clearly better word), keep any change minimal, and explain it in rewriteNote. A different but equally good phrasing is not a reason to change it.`;
 
 type Body = {
   topic?: string;
   transcript?: string;
   stats?: Stats;
   previous?: { transcript: string; score: number } | null;
+  target?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Record a new take to get more feedback." }, { status: 429 });
   }
 
-  const { topic, transcript, stats, previous }: Body = await request.json();
+  const { topic, transcript, stats, previous, target }: Body = await request.json();
   if (!transcript?.trim() || !stats) {
     return Response.json({ error: "Nothing to review: no speech was detected" }, { status: 400 });
   }
@@ -51,6 +54,12 @@ export async function POST(request: Request) {
     `Pauses over 0.7s: ${stats.pauseCount} (longest ${stats.longestPause.toFixed(1)}s)`,
     `Dead air before first word: ${stats.deadAirStart.toFixed(1)}s`,
   ];
+  lines.push(
+    "",
+    target?.trim()
+      ? `Target line they are practising: "${target.trim().slice(0, 300)}"`
+      : "No target line yet: write one as the rewrite.",
+  );
   if (previous) {
     lines.push(
       "",

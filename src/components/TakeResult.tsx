@@ -65,6 +65,60 @@ function Transcript({ tokens }: { tokens: Token[] }) {
   );
 }
 
+// Ignore case, punctuation and spacing when deciding whether Claude changed the target line.
+const sameLine = (a: string, b: string) => {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return norm(a) === norm(b);
+};
+
+function TargetLine({
+  targetAtTake,
+  currentTarget,
+  feedback,
+  onUseLine,
+}: {
+  targetAtTake: string | null;
+  currentTarget: string | null;
+  feedback: Feedback;
+  onUseLine: (line: string) => void;
+}) {
+  const suggestion = feedback.rewrite;
+  if (!targetAtTake) {
+    return (
+      <section className="rounded-2xl border-2 border-dashed border-accent/50 p-4">
+        <div className="text-xs font-medium uppercase tracking-wide text-accent">Try saying it like this</div>
+        <p className="mt-1 text-lg font-semibold leading-snug">“{suggestion}”</p>
+        <p className="mt-2 text-xs text-muted">This is now your target line for this topic.</p>
+      </section>
+    );
+  }
+  const tweaked = !sameLine(targetAtTake, suggestion);
+  const adopted = !!currentTarget && sameLine(currentTarget, suggestion);
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border-2 border-dashed border-accent/50 p-4">
+      <div>
+        <div className="text-xs font-medium uppercase tracking-wide text-accent">Your target line</div>
+        <p className="mt-1 text-lg font-semibold leading-snug">“{targetAtTake}”</p>
+        {!tweaked && <p className="mt-2 text-xs text-muted">Keep drilling this line.</p>}
+      </div>
+      {tweaked && (
+        <div className="border-t border-line pt-3">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">Suggested tweak</div>
+          <p className="mt-1 text-[17px] font-medium leading-snug">“{suggestion}”</p>
+          {feedback.rewriteNote && <p className="mt-1 text-sm text-ink-soft">{feedback.rewriteNote}</p>}
+          <button
+            onClick={() => onUseLine(suggestion)}
+            disabled={adopted}
+            className="mt-3 rounded-full border border-line-strong bg-card px-4 py-2 text-sm font-semibold disabled:border-transparent disabled:bg-transparent disabled:px-0 disabled:text-good"
+          >
+            {adopted ? "✓ Now your target line" : "Use this line instead"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function TakeResult({
   takeNumber,
   tokens,
@@ -72,6 +126,9 @@ export function TakeResult({
   feedback,
   feedbackError,
   audioUrl,
+  targetAtTake = null,
+  currentTarget = null,
+  onUseLine = () => {},
 }: {
   takeNumber: number;
   tokens: Token[];
@@ -79,6 +136,9 @@ export function TakeResult({
   feedback: Feedback | null; // null while Claude is still writing it
   feedbackError?: string | null;
   audioUrl: string | null;
+  targetAtTake?: string | null; // the target line the creator was practising on this take
+  currentTarget?: string | null;
+  onUseLine?: (line: string) => void;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -184,10 +244,12 @@ export function TakeResult({
             </ol>
           </section>
 
-          <section className="rounded-2xl border-2 border-dashed border-accent/50 p-4">
-            <div className="text-xs font-medium uppercase tracking-wide text-accent">Try saying it like this</div>
-            <p className="mt-1 text-lg font-semibold leading-snug">“{feedback.rewrite}”</p>
-          </section>
+          <TargetLine
+            targetAtTake={targetAtTake}
+            currentTarget={currentTarget}
+            feedback={feedback}
+            onUseLine={onUseLine}
+          />
         </>
       )}
     </div>

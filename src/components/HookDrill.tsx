@@ -20,6 +20,7 @@ type Result = {
   feedback: Feedback | null; // null while Claude is still writing it
   feedbackError: string | null;
   audioUrl: string;
+  targetAtTake: string | null;
 };
 
 type Phase = "ready" | "processing" | "result";
@@ -40,6 +41,8 @@ export function HookDrill() {
   const [result, setResult] = useState<Result | null>(null);
   // Takes on the current topic this session, newest last.
   const [sessionTakes, setSessionTakes] = useState<Result[]>([]);
+  // The line being drilled on this topic: the first rewrite, until the creator picks another.
+  const [target, setTarget] = useState<string | null>(null);
   const history = useSyncExternalStore(takesStore.subscribe, takesStore.getSnapshot, takesStore.getServerSnapshot);
   // undefined while checking, null when signed out.
   const [account, setAccount] = useState<Account | null | undefined>(undefined);
@@ -80,6 +83,7 @@ export function HookDrill() {
           feedback: null,
           feedbackError: null,
           audioUrl: await audioUrlReady,
+          targetAtTake: target,
         };
         setResult(take);
         setSessionTakes((t) => [...t, take]);
@@ -98,9 +102,11 @@ export function HookDrill() {
               transcript,
               stats,
               previous: prev?.feedback ? { transcript: prev.transcript, score: prev.feedback.score } : null,
+              target,
             }),
           });
           update({ feedback });
+          if (!target) setTarget(feedback.rewrite);
           saveTake({ id, createdAt: Date.now(), topic, transcript, stats, feedback });
         } catch (e) {
           update({ feedbackError: e instanceof Error ? e.message : "Couldn't get feedback for this take." });
@@ -111,7 +117,7 @@ export function HookDrill() {
         setPhase("ready");
       }
     },
-    [topic, sessionTakes],
+    [topic, sessionTakes, target],
   );
 
   const recorder = useRecorder(handleTake);
@@ -120,6 +126,7 @@ export function HookDrill() {
     sessionTakes.forEach((t) => URL.revokeObjectURL(t.audioUrl));
     setTopic(next);
     setSessionTakes([]);
+    setTarget(null);
     setResult(null);
     setPhase("ready");
     setEditingTopic(false);
@@ -145,7 +152,7 @@ export function HookDrill() {
         <SignupGate onSignedIn={setAccount} />
       ) : phase === "result" && result ? (
         <>
-          <TakeResult {...result} />
+          <TakeResult {...result} currentTarget={target} onUseLine={setTarget} />
           <div className="sticky bottom-4 flex gap-3">
             <button
               onClick={() => setPhase("ready")}
@@ -194,6 +201,12 @@ export function HookDrill() {
               </form>
             ) : (
               <p className="mt-2 font-serif text-[28px] font-medium leading-tight tracking-tight">{topic}</p>
+            )}
+            {target && (
+              <div className="mt-4 border-t border-line pt-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-accent">Target line</div>
+                <p className="mt-1 text-lg font-semibold leading-snug">“{target}”</p>
+              </div>
             )}
             {last && (
               <div className="mt-4 border-t border-line pt-3 text-sm">
