@@ -11,8 +11,9 @@ export type Take = {
 };
 
 // Personal phase: history lives in this browser only. Swap for a database at launch.
-// v2: scores became "jobs done out of 4"; v1 takes (out of 10) are left behind rather than mixed in.
-const KEY = "speakup.takes.v2";
+// Bumped whenever the rating format changes, so old and new ratings are never mixed.
+// v3: Strong / Good / Needs work (v1 was out of 10, v2 jobs out of 4).
+const KEY = "speakup.takes.v3";
 const LIMIT = 100;
 
 const EMPTY: Take[] = [];

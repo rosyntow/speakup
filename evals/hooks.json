@@ -1,0 +1,47 @@
+{
+  "about": "Hooks with known outcomes. Any change to how SpeakUp rates hooks must pass all of these before it goes live. Add every new real example here. expect: \"strong\" = must rate Strong; \"not_strong\" = must rate Good or Needs work.",
+  "cases": [
+    {
+      "id": "news-anthropic-research",
+      "note": "Viral news tease, about 57,000 likes",
+      "topic": "AI news",
+      "expect": "strong",
+      "script": "Anthropic just published something that I don't think anybody in the AI space is taking seriously enough. So Anthropic, the company that makes Claude, just published research about their own AI. They built a fake company and stacked it with AI agents, different roles working together like a real team. Here's what they found."
+    },
+    {
+      "id": "intrigue-life-math",
+      "note": "Did well; suspense and intrigue hook with a quotable formula",
+      "topic": "Life math",
+      "expect": "strong",
+      "script": "Talent times effort equals skill, and skill times effort equals achievement. Welcome back to another episode of life math. So Angela Duckworth writes this equation in her book, Grit, which fun fact is the first audiobook I ever listened to. To define some terms, talent isn't how good you are. It's how quickly your skill improves when you put in effort."
+    },
+    {
+      "id": "promise-ai-workforce",
+      "note": "Did well; direct how-to promise",
+      "topic": "Build an AI workforce",
+      "expect": "strong",
+      "script": "Here's how you can build your own AI agent workforce that works twenty four seven, built in one weekend."
+    },
+    {
+      "id": "weak-greeting",
+      "note": "Greeting and throat-clearing before a vague topic",
+      "topic": "AI tools I use",
+      "expect": "not_strong",
+      "script": "Hey guys, so today I wanted to talk a little bit about some AI tools that I've been using lately."
+    },
+    {
+      "id": "weak-vague-topic",
+      "note": "Announces a topic with no grab",
+      "topic": "Productivity",
+      "expect": "not_strong",
+      "script": "In this video I'm going to be talking about productivity and some things that might help you."
+    },
+    {
+      "id": "weak-buried",
+      "note": "Fillers and a slow warm-up before a vague point",
+      "topic": "AI",
+      "expect": "not_strong",
+      "script": "So, um, I've been thinking a lot lately, and, uh, there's this thing about AI that I think is really interesting."
+    }
+  ]
+}

@@ -29,3 +29,11 @@ Visitors sign up with name and email (added to Kit, tagged `SpeakUp`) and get a 
 - `src/lib/analysis.ts`: works out pace, fillers, crutch words, pauses, dead air and what's said in the first 3 seconds.
 - `src/app/api/feedback`: Claude scores the hook and returns fixes, a rewrite and one focus for the next take.
 - `src/lib/history.ts`: past takes, saved in this browser for now.
+
+## Testing changes to the hook rating
+
+`evals/hooks.json` holds hooks with known outcomes: real hooks that performed well must rate Strong, and weak hooks must not. Add every new real example there. To check a change before it goes live:
+
+1. Deploy a free draft (no deploy credits, not the live site): `npx netlify-cli deploy`. Use an unnamed draft: drafts with `--alias` don't get the deploy-preview keys.
+2. Run the test set against it (macOS, uses `say`): `node scripts/eval-hooks.mts <draft-url>/speakup <test-email>`. The test email should be in `UNLIMITED_EMAILS`.
+3. Only when every case passes: `npx netlify-cli deploy --prod`.

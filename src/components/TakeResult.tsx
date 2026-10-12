@@ -1,5 +1,5 @@
 import { HOOK_WINDOW, PAUSE_THRESHOLD, type Stats, type Token } from "@/lib/analysis";
-import { CONTENT_TYPES, HOOK_TYPES, scoreLabel, type Feedback, type JobKey, type Rating } from "@/lib/feedback";
+import { MECHANISMS, OVERALL_LABELS, type Feedback, type Overall } from "@/lib/feedback";
 
 type Tone = "good" | "warn" | "bad" | "neutral";
 
@@ -20,14 +20,23 @@ function StatTile({ label, value, hint, tone }: { label: string; value: string; 
   );
 }
 
-const ratingStyle: Record<Rating, { icon: string; className: string; label: string }> = {
+type Mark = "strong" | "partial" | "missing" | "too_short";
+
+const markStyle: Record<Mark, { icon: string; className: string; label: string }> = {
   strong: { icon: "✓", className: "bg-good/15 text-good", label: "Strong" },
   partial: { icon: "~", className: "bg-warn/15 text-warn", label: "Partly" },
   missing: { icon: "✗", className: "bg-bad/15 text-bad", label: "Missing" },
+  too_short: { icon: "…", className: "bg-surface-strong text-muted", label: "Too short to tell" },
 };
 
-function JobRow({ label, rating, evidence }: { label: string; rating: Rating; evidence: string }) {
-  const style = ratingStyle[rating];
+const overallStyle: Record<Overall, string> = {
+  strong: "bg-good text-white",
+  good: "bg-accent text-accent-ink",
+  needs_work: "bg-ink text-white",
+};
+
+function CheckRow({ mark, title, children }: { mark: Mark; title: string; children: React.ReactNode }) {
+  const style = markStyle[mark];
   return (
     <li className="flex gap-3">
       <span
@@ -37,8 +46,8 @@ function JobRow({ label, rating, evidence }: { label: string; rating: Rating; ev
         {style.icon}
       </span>
       <div>
-        <div className="text-[15px] font-semibold">{label}</div>
-        <p className="text-sm leading-relaxed text-ink-soft">{evidence}</p>
+        <div className="text-[15px] font-semibold">{title}</div>
+        <p className="text-sm leading-relaxed text-ink-soft">{children}</p>
       </div>
     </li>
   );
@@ -153,10 +162,11 @@ export function TakeResult({
     <div className="flex flex-col gap-5">
       <section className="flex items-start gap-4" aria-live="polite">
         {feedback ? (
-          <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-3xl bg-accent text-accent-ink">
-            <span className="text-3xl font-bold tabular-nums leading-none">{feedback.score}</span>
-            <span className="text-xs opacity-80">of 4 jobs</span>
-            <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide">{scoreLabel(feedback.score)}</span>
+          <div
+            className={`flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-3xl px-2 text-center ${overallStyle[feedback.overall]}`}
+          >
+            <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">Hook</span>
+            <span className="text-lg font-bold leading-tight">{OVERALL_LABELS[feedback.overall]}</span>
           </div>
         ) : (
           <div
@@ -167,7 +177,7 @@ export function TakeResult({
         <div>
           <div className="text-xs font-medium uppercase tracking-wide text-muted">
             Take {takeNumber}
-            {feedback && ` · ${CONTENT_TYPES[feedback.contentType]?.label ?? ""} · ${HOOK_TYPES[feedback.hookType] ?? "Hook"}`}
+            {feedback && ` · ${MECHANISMS[feedback.mechanism] ?? "Hook"}`}
           </div>
           {feedback ? (
             <p className="mt-1 text-lg font-medium leading-snug">{feedback.verdict}</p>
@@ -247,21 +257,32 @@ export function TakeResult({
       ) : (
         <>
           <section>
-            <h3 className="text-sm font-semibold">What your hook does</h3>
+            <h3 className="text-sm font-semibold">How your hook works</h3>
             <ul className="mt-3 flex flex-col gap-3">
-              {(Object.keys(feedback.jobs) as JobKey[]).map((job) => (
-                <JobRow
-                  key={job}
-                  label={(CONTENT_TYPES[feedback.contentType] ?? CONTENT_TYPES.teaching).jobs[job].label}
-                  {...feedback.jobs[job]}
-                />
-              ))}
+              <CheckRow mark={feedback.grab.rating} title={`The grab: ${MECHANISMS[feedback.mechanism] ?? "Hook"}`}>
+                {feedback.grab.evidence}
+              </CheckRow>
+              <CheckRow mark={feedback.landsEarly ? "strong" : "missing"} title="Lands early">
+                {feedback.landsEarly
+                  ? "The grab lands within the first 10 or so words."
+                  : "The grab arrives late. Viewers decide in the first second or two, so get it into the first 10 or so words."}
+              </CheckRow>
+              <CheckRow mark={feedback.payoff.rating} title="Starts paying off">
+                {feedback.payoff.evidence}
+              </CheckRow>
+              <CheckRow mark={feedback.blockers.length ? "missing" : "strong"} title="Nothing in the way">
+                {feedback.blockers.length ? feedback.blockers.join(" ") : "No greeting, filler or warm-up before the grab."}
+              </CheckRow>
             </ul>
-            {!feedback.promiseLandsEarly && (
-              <p className="mt-3 rounded-xl bg-warn/10 px-3 py-2 text-sm text-warn">
-                {(CONTENT_TYPES[feedback.contentType] ?? CONTENT_TYPES.teaching).jobs.promise.label} lands late.
-                Viewers decide in the first second or two, so aim to make it clear within about 10 words.
-              </p>
+            {feedback.couldAdd.length > 0 && (
+              <div className="mt-4 rounded-xl bg-surface px-3 py-2.5">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted">Could add (optional)</div>
+                <ul className="mt-1 list-disc pl-5 text-sm leading-relaxed text-ink-soft">
+                  {feedback.couldAdd.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 

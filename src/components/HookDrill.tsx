@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { BASE, SITE } from "@/lib/base";
 import { analyze, type Stats, type Token, type Word } from "@/lib/analysis";
-import type { Feedback } from "@/lib/feedback";
+import { OVERALL_LABELS, type Feedback } from "@/lib/feedback";
 import { saveTake, takesStore } from "@/lib/history";
 import { playableUrl } from "@/lib/playback";
 import { HOOK_TOPICS, randomTopic } from "@/lib/topics";
@@ -101,7 +101,7 @@ export function HookDrill() {
               topic,
               transcript,
               stats,
-              previous: prev?.feedback ? { transcript: prev.transcript, score: prev.feedback.score } : null,
+              previous: prev?.feedback ? { transcript: prev.transcript, overall: prev.feedback.overall } : null,
               target,
             }),
           });
@@ -216,7 +216,7 @@ export function HookDrill() {
             {last && (
               <div className="mt-4 border-t border-line pt-3 text-sm">
                 <span className="text-muted">
-                  Take {sessionTakes.length + 1} · last take did {last.feedback?.score} of 4 jobs
+                  Take {sessionTakes.length + 1} · last take: {last.feedback && OVERALL_LABELS[last.feedback.overall]}
                 </span>
                 <p className="mt-1 font-medium">Focus: {last.feedback?.focusNextTake}</p>
               </div>
@@ -300,8 +300,8 @@ export function HookDrill() {
               <ul className="mt-2 divide-y divide-line">
                 {history.slice(0, 6).map((t) => (
                   <li key={t.id} className="flex items-center gap-3 py-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface font-semibold tabular-nums">
-                      {t.feedback.score}/4
+                    <span className="w-20 shrink-0 rounded-xl bg-surface px-2 py-1.5 text-center text-xs font-semibold">
+                      {OVERALL_LABELS[t.feedback.overall] ?? "–"}
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">“{t.stats.hookWindowText || t.transcript}”</p>
